@@ -640,8 +640,7 @@ body <- dashboardBody(
           br(),
           h2("En este sección:", align = "left"),
           br(),
-          h4("Se lleva a cabo el proceso de muestreo: tamaño y selección de la unidades según el LES, pero con selección de PPT para los casos inferiores al 
-             LES.", align ="left"),
+          h4("Se lleva a cabo el proceso de muestreo: tamaño y selección de la unidades según el LES, pero con selección de PPT para los casos inferiores al LES.", align ="left"),
           br(),
           h4("Cargado los datos, usted podrá:"),
           br(),
@@ -655,9 +654,202 @@ body <- dashboardBody(
           ),
           br(), 
           
+          
+          ########################
+          #  Cargar el archivo   #
+          ########################
+          
           h3("Cargar datos", align = "left"),
           br(),
 
+          fileInput("file45", "Importar datos del muestreo",
+                    accept =  c(
+                      ".csv",
+                      ".txt",
+                      ".xlsx",
+                      "text/csv",
+                      "text/plain",
+                      "text/tab-separated-values",
+                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )),
+          br(),
+          uiOutput("variable_select_LES_PPT"),
+          h4("IMPORTANTE: Debe seleccionar variables numéricas.",align = "left", style = "font-weight: bold"),
+          uiOutput("negativesAlertMuestreoLES_PPT"),
+          br(),
+          #           plotOutput("histogram2"),
+          h2("Muestreo: tamaño y selección", align = "left"),
+          br(),
+          h4("El proceso de muestreo consta de dos etapas: selección del tamaño de la muestra y la selección de las unidades",align = "left"),
+          h4("Se aborda primeramente la determinación del tamaño de la muestra. Se deberán seleccionar el tamaño según la elección de los parámetros de erores tolarebles, esperados u nivel de confianza."),  
+          h4("La selección de las unidades para completar el tamaño de muestra, se visualiza en términos de una tabla. Se aplicó el método de selección Proporcional Por Tamaño, la cual brinda mayor probabilidad de ser seleccinadas a las unidades con montos mayores."),
+          br(),
+          h3("Cálculo de tamaño de muestra"),
+          br(),
+          h4("Cuando estás determinando el tamaño de una muestra para tu estudio, hay varios factores clave a considerar
+                          que influyen directamente en la cantidad de datos que necesitas recolectar:",align = "left"),
+          br(),
+          h4("Margen de Tolerancia (Tolerable)",align = "left", style = "font-weight: bold"),
+          h4("Este valor representa el máximo error de estimación que estás dispuesto a aceptar
+                          en tus resultados. Un margen mayor sugiere que estás tolerando una mayor incertidumbre, lo que puede resultar en una
+                          muestra más pequeña. En contraste, un margen más ajustado requiere una muestra más grande para garantizar que tus estimaciones
+                          estén dentro de ese rango estrecho.",align = "left"),
+          h4("Error Esperado (Esperado)",align = "left", style = "font-weight: bold"),
+          h4("Este es el error que anticipas podría existir en tu población. Un valor más alto implica que esperas
+                          más variabilidad en los datos, lo que se traduce en necesitar una muestra más grande para obtener estimaciones precisas.",align = "left"),
+          h4("Nivel de Confianza",align = "left", style = "font-weight: bold"),
+          h4("Cuanto mayor sea el nivel de confianza que desees tener en los resultados de tu muestra, mayor deberá
+                          ser el tamaño de la misma. Esto se debe a que un nivel de confianza más alto indica que quieres estar más seguro de que tu 
+                          muestra representa correctamente a toda la población.",align = "left"),
+          
+          br(),
+          h3("Tabla de sugencia para determinar el tamaño de la muestra.",align = "left"),
+          br(),
+          h4("El tamaño de muestra depende de la capacidad operativa y las característica de la auditoría. ",align = "left"),
+          h4("A continuación, Se presente una tabla con recomendaciones de tamaños de muestras, categorizadas en muestras de tamaño: inferiores a 50, entre 50 y 100 y superiores a 
+                           a las 100 unidades de muestreo.",align = "left"),
+          br(),
+          
+          
+          fluidRow(
+            box(
+              title = "Tabla de Datos",
+              status = "primary",
+              solidHeader = TRUE,
+              collapsible = TRUE,
+              width = 8,  # Ocupará todo el ancho disponible
+              div(style = "height: 180px;",  # Establece el alto de la tabla
+                  reactableOutput("SugerenciasTamaño_LES_PPT")
+              )
+            )
+          ),
+          
+          #### Selección de los parámetros para el tamaño de muestra #####
+          
+          h4("Utilizando los controles deslizantes de tu aplicación, los usuarios pueden ajustar estos parámetros para determinar un tamaño 
+                          de muestra que sea adecuado para sus necesidades específicas.",align = "left"),
+          br(),
+          h4("Nota: defina los parámetros, y luego presione sobre 'Análisis de muestreo. Recuerde la distribución aproximada de la sección 'Descriptivo'." ,align = "left"),
+          sliderInput("freq1_LES_PPT",
+                      "Tolerable:",
+                      min = 0.01,  max = 0.99, value = 0.05),
+          sliderInput("freq2_LES_PPT",
+                      "Esperado:",
+                      min = 0.01,  max = 0.99, value = 0.01), 
+          selectInput("distri_2", "Seleccione el nivel:",  
+                      list(`Tipo` = list("poisson",
+                                         "binomial"
+                                         
+                      )
+                      )
+          ),
+          h6("Importante: el 'Tolerable' debe siempre ser superior al 'Esperado'. Caso contrario, desaparece el botón de 'Análisis del muestreo' por asignación incorrecta de los parámetros."),
+          sliderInput("freq3_LES_PPT",
+                      "Nivel de confianza:",
+                      min = 0.01,  max = 0.99, value = 0.95),
+          br(),
+          h4("Valor LES.",align = "left"),
+          numericInput("LES", "Valor del LES:", min = 0, value = 100000),
+          
+          conditionalPanel(
+            condition = "(!output.hasNegatives_LES_PPT) && (input.freq2_LES_PPT < input.freq1_LES_PPT)",
+            actionButton("update_LES", "Análisis del muestreo.", class = "btn-primary")
+          ),
+          br(),
+          br(),
+                    
+          
+          
+          ########################
+          # Tamaño de la muestra #
+          ########################
+          
+          fluidRow(
+            box(
+              solidHeader = TRUE, 
+              status = "primary",
+              collapsible = TRUE,
+              width = 8,
+              reactableOutput("SampleSize_LES_PPT")  
+            )
+          ),
+          br(),
+          
+          
+          ##################################
+          #   Conteo de valores según LES  # 
+          ##################################
+          
+          fluidRow(
+            box(
+              title = "Conteo de Valores según LES",
+              solidHeader = TRUE,
+              status = "primary",
+              collapsible = TRUE,
+              width = 8,
+              reactableOutput("ConteoLes_PPT")
+            )
+          ),
+          
+          #######################
+          # Valor de la semilla #
+          #######################
+          
+          fluidRow(
+            box(
+              solidHeader = TRUE, 
+              status = "primary",
+              collapsible = TRUE,
+              width = 8,
+              reactableOutput("seedvalue_LES_PPT")  
+            )
+          ),
+          br(),
+          br(),
+          
+          
+          ######################## 
+          # Muestra seleccionada 
+          ########################
+          
+          fluidRow(
+            box(
+              title = "Muestra Seleccionada",
+              solidHeader = TRUE,
+              status = "primary",
+              collapsible = TRUE,
+              width = 8,
+              reactableOutput("MuestraLES_PPT")
+            )
+          ),
+          
+          br(),
+          
+          #################################################
+          #    Comparación de datos originales y muestra  #
+          #################################################
+          
+          h3("Comparación de datos cargados vs muestra seleccionada"),
+          br(),
+          fluidRow(
+            box(
+              title = "Comparación de distribuciones entre datos cargados y las unidades seleccionadas a partir de la muestra de datos",
+              status = "primary",
+              solidHeader = TRUE,
+              collapsible = TRUE,
+              width = 8,
+              highchartOutput("comp_dist_LES_PPT")  
+            )
+          ),
+          
+          br(),
+          
+          #################################
+          #         Descargar muestra     #
+          #################################
+          
+          h3("Descargar la muestra seleccionada"),
+          br(),
           
           
           
