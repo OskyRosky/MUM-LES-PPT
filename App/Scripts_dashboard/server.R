@@ -767,8 +767,6 @@ server <- function(input, output, session) {
     
   })
   
-  
-  
   #################################
   #   Condicional     #
   #################################
@@ -1115,11 +1113,70 @@ server <- function(input, output, session) {
   # Data la volvemos un objeto reactivo 
   #  data ---> data()
   
-
+  data45 <- reactive({
+    inFile <- input$file45
+    if (is.null(inFile)) {
+      return(NULL)
+    }
+    
+    ext <- tools::file_ext(inFile$datapath)
+    
+    # Dependiendo de la extensión del archivo, usar la función correspondiente
+    switch(ext,
+           csv = read.csv(inFile$datapath, stringsAsFactors = FALSE),
+           txt = read.delim(inFile$datapath, stringsAsFactors = FALSE),
+           xlsx = read_excel(inFile$datapath),
+           stop("Tipo de archivo no soportado")
+    )
+  })
+  
+  output$variable_select_LES <- renderUI({
+    if (is.null(data45())) {
+      return(NULL)
+    } else {
+      selectInput("variable45", "Elija una variable:", names(data3()))
+    }
+  })
+  
   
   ##################################################
   #         Alerta para valores negativos  en MUM  #
   ##################################################
+  
+  output$variable_select_LES <- renderUI({
+    if (is.null(data3())) {
+      return(NULL)
+    } else {
+      selectInput("variable45", "Elija una variable:", names(data3()))
+    }
+  })
+  
+  # Initialize a reactive value for tracking negative values in the Muestreo section
+  has_negatives_muestreo_LES_PPT <- reactiveVal(FALSE)
+  
+  observe({
+    # Ensure that the dataset and selected variable for Muestreo are available
+    req(data45(), input$variable45)
+    
+    # Check for negative values in the selected variable for Muestreo
+    if (any(data45()[[input$variable45]] < 0, na.rm = TRUE)) {
+      has_negatives_muestreo_LES_PPT(TRUE)  # Update if negatives are found
+    } else {
+      has_negatives_muestreo_LES_PPT(FALSE)  # Update if no negatives are found
+    }
+  })
+  
+  # Create an output for the Muestreo negatives alert
+  output$negativesAlertMuestreoLES_PPT <- renderUI({
+    if (has_negatives_muestreo_LES_PPT()) {
+      tags$div(class = "alert alert-danger", 
+               strong("¡Se detectaron valores negativos!"), "No es posible proceder con el muestreo LES con valores o montos negativos. Procede a corregirlos para para poder proceder con el muestreo.")
+    }
+  })
+  
+  # Ensure the UI can always access this output
+  outputOptions(output, 'negativesAlertMuestreoLES_PPT', suspendWhenHidden = FALSE)
+  
   
   
   ##################################################
@@ -1127,6 +1184,19 @@ server <- function(input, output, session) {
   ##################################################
   
   # Datos para la tabla de sugerencias de tamaño de muestra
+  sugerencias_tamaño_45 <- data.frame(
+    `Tamaño de Muestra` = c("Inferior (<=50)", "Entre (50-100)", "Superior (100)"),
+    `Margen de Tolerancia (Tolerable)` = c("0.2 - 0.3", "0.03 - 0.05", "0.01 - 0.03"),
+    `Error Esperado` = c("0.05 - 0.10", "0.02 - 0.05", "0.01 - 0.02"),
+    `Nivel de Confianza` = c("0.90 - 0.95", "0.95 - 0.99", "> 0.99")
+  )
+  
+  # Genera la tabla reactiva
+  output$SugerenciasTamaño_LES_PPT <- renderReactable({
+    reactable(sugerencias_tamaño_45, bordered = TRUE, highlight = TRUE)
+    
+    
+  })
 
   
   #################################
@@ -1177,9 +1247,9 @@ server <- function(input, output, session) {
       
      
           
-          ###############################
-          #      Gráfico comparativo    #
-          ###############################
+      ###############################
+      #      Gráfico comparativo    #
+      ###############################
           
 
   
@@ -1717,8 +1787,6 @@ server <- function(input, output, session) {
         write.xlsx(Diferencias(), file)
       }
     )
-    
-    
     
     
     # Creación de la función de indicadores de riesgo
