@@ -8,9 +8,9 @@ sidebar <- dashboardSidebar(
     menuItem("Descriptivo",tabName = "p2", icon = icon("chalkboard")),
     menuItem("Muestra MUM",tabName = "p3", icon = icon("chalkboard")),
     menuItem("Muestra LES",tabName = "p4", icon = icon("chalkboard")),
-    menuItem("Muestra LES con PPT",tabName = "p4.5", icon = icon("chalkboard")),
+    menuItem("Muestra LES con PPT",tabName = "p45", icon = icon("chalkboard")),
     menuItem("Muestra Atributos",tabName = "p5", icon = icon("chalkboard")),
-    menuItem("Evaluación",tabName = "p6", icon = icon("ruler"))
+    menuItem("Evaluacidsfsdfsdfsdfón",tabName = "p6", icon = icon("ruler"))
     
   )
 )
