@@ -628,6 +628,43 @@ body <- dashboardBody(
   
          ##############################################################################################################
          ##############################################################################################################
+         #                                               Muestreo LES con PPT.                                        #
+         ##############################################################################################################
+         ##############################################################################################################
+  
+  tabItem(tabName = "p4.5",
+          
+          
+          h1("Muestreo LES con selección PPT.", align = "center"),
+          
+          br(),
+          h2("En este sección:", align = "left"),
+          br(),
+          h4("Se lleva a cabo el proceso de muestreo: tamaño y selección de la unidades según el LES, pero con selección de PPT para los casos inferiores al 
+             LES.", align ="left"),
+          br(),
+          h4("Cargado los datos, usted podrá:"),
+          br(),
+          tags$ul(
+            style = "list-style-type: disc; padding-left: 20px;",  # Estilo para la lista: disc es una viñeta redonda
+            tags$li(h4("Calcular el tamaño de muestra.", align = "left")),
+            tags$li(h4("Visualizar las unidades seleccionadas", align = "left",)),
+            tags$li(h4("Comparar los datos cargados vs los datos obtenidos por la muestra.", align = "left")),
+            tags$li(h4("Descargar los datos de la muestra en formato, ya sea .csv, .txt y .xlsx", align = "left")),
+            tags$li(h4("Descargar los resultados generados en formato '.docx'.", align = "left"))
+          ),
+          br(), 
+          
+          h3("Cargar datos", align = "left"),
+          br(),
+
+          
+          
+          
+  ),
+  
+         ##############################################################################################################
+         ##############################################################################################################
          #                                               Muestreo Atribuos                                            #
          ##############################################################################################################
          ##############################################################################################################
