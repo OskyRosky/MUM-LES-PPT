@@ -1130,11 +1130,11 @@ server <- function(input, output, session) {
     )
   })
   
-  output$variable_select_LES <- renderUI({
+  output$variable_select_LES_PPT <- renderUI({
     if (is.null(data45())) {
       return(NULL)
     } else {
-      selectInput("variable45", "Elija una variable:", names(data3()))
+      selectInput("variable45", "Elija una variable:", names(data45()))
     }
   })
   
@@ -1143,11 +1143,11 @@ server <- function(input, output, session) {
   #         Alerta para valores negativos  en MUM  #
   ##################################################
   
-  output$variable_select_LES <- renderUI({
+  output$variable_select_LES_PPT <- renderUI({
     if (is.null(data3())) {
       return(NULL)
     } else {
-      selectInput("variable45", "Elija una variable:", names(data3()))
+      selectInput("variable45", "Elija una variable:", names(data45()))
     }
   })
   
