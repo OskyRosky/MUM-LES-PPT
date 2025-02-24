@@ -894,7 +894,7 @@ server <- function(input, output, session) {
   #    Conteo de los valores LES  #
   #################################
   
-  conteoLES <- reactive({
+  conteo_LES <- reactive({
     req(input$update_LES)
     req(Muestra_2())
     
@@ -911,9 +911,9 @@ server <- function(input, output, session) {
   })
   
   # Renderizar la tabla de conteo LES para la muestra seleccionada
-  output$ConteoLes <- renderReactable({
-    req(conteoLES())  # Asegúrate de que el objeto reactivo no sea NULL
-    reactable(conteoLES())  # Renderiza el objeto reactivo en una tabla
+  output$conteo_LES <- renderReactable({
+    req(conteo_LES())  # Asegúrate de que el objeto reactivo no sea NULL
+    reactable(conteo_LES())  # Renderiza el objeto reactivo en una tabla
   })
   
   
@@ -1263,6 +1263,7 @@ server <- function(input, output, session) {
         req(input$update_LES_PPT)
         req(sample_size())
         req(data45())
+        req(input$variable45)
         
         LES <- input$LES_PPT
         n_muestra <- sample_size()$Muestra
@@ -1275,9 +1276,10 @@ server <- function(input, output, session) {
           datos_muestra <- head(datos_mayores[order(-datos_mayores[[input$variable45]]), ], n_muestra)
         } else {
           n_adicional <- n_muestra - nrow(datos_mayores)
-          datos_menores <- datos[datos[[input$variable3]] <= LES, ]
+          datos_menores <- datos[datos[[input$variable45]] <= LES, ]
           set.seed(reactive_seed())  # Usa la semilla aleatoria generada
           if (nrow(datos_menores) > 0 && n_adicional > 0) {
+            n_adicional <- min(n_adicional, nrow(datos_menores))  # No muestrear más de lo disponible
             ids_adicionales <- sample(nrow(datos_menores), n_adicional, replace = FALSE)
             datos_adicionales <- datos_menores[ids_adicionales, ]
             datos_muestra <- rbind(datos_mayores, datos_adicionales)
@@ -1320,7 +1322,7 @@ server <- function(input, output, session) {
       #    Conteo de los valores LES  #
       #################################
       
-      conteoLES <- reactive({
+      conteo_LES_PPT <- reactive({
         req(input$update_LES_PPT)
         req(Muestra_2())
         req(input$variable45)  # Asegúrate de que input$variable45 no sea NULL
@@ -1341,9 +1343,9 @@ server <- function(input, output, session) {
       })
       
       # Renderizar la tabla de conteo LES para la muestra seleccionada
-      output$ConteoLes <- renderReactable({
-        req(conteoLES())  # Asegúrate de que el objeto reactivo no sea NULL
-        reactable(conteoLES())  # Renderiza el objeto reactivo en una tabla
+      output$Conteo_Les_PPT <- renderReactable({
+        req(conteo_LES_PPT())  # Asegúrate de que el objeto reactivo no sea NULL
+        reactable(conteo_LES_PPT())  # Renderiza el objeto reactivo en una tabla
       })
       
       

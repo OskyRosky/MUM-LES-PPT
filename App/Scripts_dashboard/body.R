@@ -553,7 +553,7 @@ body <- dashboardBody(
               status = "primary",
               collapsible = TRUE,
               width = 8,
-              reactableOutput("ConteoLes")
+              reactableOutput("conteo_LES")
             )
           ),
 
@@ -783,12 +783,12 @@ body <- dashboardBody(
           
           fluidRow(
             box(
-              title = "Conteo de Valores según LES",
+              title = "Conteo de Valores según LES con selección PPT.",
               solidHeader = TRUE,
               status = "primary",
               collapsible = TRUE,
               width = 8,
-              reactableOutput("ConteoLes_PPT")
+              reactableOutput("Conteo_Les_PPT")
             )
           ),
           
