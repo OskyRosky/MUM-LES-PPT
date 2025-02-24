@@ -1461,21 +1461,20 @@ server <- function(input, output, session) {
         p <- ggplot() +
           geom_density(data = datosOriginales, aes(x = .data[[variable]]), fill = "blue", alpha = 0.5) +
           geom_density(data = datosMuestra, aes(x = .data[[variable]]), fill = "lightgreen", alpha = 0.5) +
-          labs(title = "Comparación entre datos Original vs Muestra LES",
+          labs(title = "Comparación entre datos Originales vs Muestra LES",
                x = variable,
                y = "Densidad") +
           theme_minimal()
         
         return(p)
       }
-      
-      
+    
       output$downloadReport3_LES_PPT <- downloadHandler(
         filename = function() {
-          paste("Muestreo_LES_", Sys.Date(), ".docx", sep = "")
+          paste("Muestreo_LES_PPT", Sys.Date(), ".docx", sep = "")
         },
         content = function(file) {
-          req(data3(), input$variable3, sample_size(), reactive_seed())
+          req(data45(), input$variable45, sample_size(), reactive_seed())
           
           # Iniciar un nuevo documento de Word
           doc <- read_docx()
@@ -1502,19 +1501,20 @@ server <- function(input, output, session) {
           #      Gráfico comparativo    #
           ###############################
           
-          # Generar y guardar el gráfico de densidad como imagen temporal
-          datosOriginales <- data45()  # Asegúrate de que estos son los datos completos
-          datosMuestra <- Muestra_2()  # Asegúrate de que estos son los datos de la muestra
+          # Generar el gráfico de densidad
+          datosOriginales <- data45()
+          datosMuestra <- Muestra_2()
           variable <- input$variable45
           
-          grafico <- generarGraficoDensidadLES(datosOriginales, datosMuestra, variable)
+          grafico <- generarGraficoDensidadLES_PPT(datosOriginales, datosMuestra, variable)
           rutaImagen <- tempfile(fileext = ".png")
           ggsave(rutaImagen, plot = grafico, width = 7, height = 5, dpi = 300)
           
-          
+          # Añadir el gráfico al documento
           doc <- doc %>%
             body_add_par("Gráfico comparativo entre valores originales y obtenidos por la muestra.", style = "heading 2") %>%
-            body_add_img(src = rutaImagen, width = 7, height = 5)
+            body_add_gg(value = grafico, width = 7, height = 5, style = "centered")
+          
           
           ######################################################
           #    Generar la tabla con los datos de la muestre    #
@@ -1527,9 +1527,9 @@ server <- function(input, output, session) {
           datosMuestra2 <- Muestra_2()
           
           # Convertir datos de la muestra en una tabla de Word
-          if (!is.null(datosMuestra2)) {
+          if (!is.null(datosMuestra2) && nrow(datosMuestra2) > 0) {
             doc <- doc %>%
-              body_add_table(datosMuestra2, style = "table_template")  # Eliminado el argumento autofit
+              body_add_table(value = datosMuestra2, style = "table_template")
           } else {
             doc <- doc %>%
               body_add_par("No hay datos de muestra disponibles.", style = "Normal")
