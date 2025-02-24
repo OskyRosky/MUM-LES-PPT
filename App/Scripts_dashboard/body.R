@@ -621,7 +621,7 @@ body <- dashboardBody(
           actionButton("show1_LES", "Descargar archivo"),
           br(),
           h3("Descargar Reporte", align = "left"),
-          downloadButton("downloadReport3", "Descargar Reporte Muestreo LES"),
+          downloadButton("downloadReport3_LES", "Descargar Reporte Muestreo LES"),
           
           
           
@@ -851,6 +851,11 @@ body <- dashboardBody(
           
           h3("Descargar la muestra seleccionada"),
           br(),
+          actionButton("show1_LES_PPT", "Descargar archivo"),
+          br(),
+          h3("Descargar Reporte", align = "left"),
+          downloadButton("downloadReport3_LES_PPT", "Descargar Reporte Muestreo LES con selección por PPT."),
+          
           
           
           

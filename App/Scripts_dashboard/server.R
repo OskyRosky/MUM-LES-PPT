@@ -1019,7 +1019,7 @@ server <- function(input, output, session) {
   }
   
   
-  output$downloadReport3 <- downloadHandler(
+  output$downloadReport3_LES <- downloadHandler(
     filename = function() {
       paste("Muestreo_LES_", Sys.Date(), ".docx", sep = "")
     },
@@ -1238,27 +1238,26 @@ server <- function(input, output, session) {
       })
       
       
-      ######################################
-      #    Selección unidades según LES    #
-      ######################################
+      ###########################################
+      #    Selección unidades según LES - PPT   #
+      ###########################################
       
-      reactive_seed <- reactiveVal()  # Inicializa como un valor reactivo
+      # Inicializa una semilla reactiva
+      reactive_seed <- reactiveVal()
       
+      # Observa el evento de actualización para generar una nueva semilla
       observeEvent(input$update_LES_PPT, {
         seed_number <- sample(1:100000, 1)
         reactive_seed(seed_number)
-        # ... [Resto del código para actualizar la muestra] ...
       })
       
-      
-      # Crear una tabla reactiva para mostrar la semilla
+      # Muestra la semilla utilizada en la interfaz
       output$seedvalue_LES_PPT <- renderReactable({
-        req(reactive_seed())  # Asegúrate de que la semilla no sea NULL
-        reactable(data.frame(`Semilla` = reactive_seed()))  # Muestra la semilla en una tabla
+        req(reactive_seed())
+        reactable(data.frame(`Semilla` = reactive_seed()))
       })
       
-      
-      # Objeto reactivo para la selección de las unidades
+      # Objeto reactivo para la selección de las unidades de muestreo
       Muestra_2 <- reactive({
         req(input$update_LES_PPT)
         req(sample_size())
@@ -1269,37 +1268,57 @@ server <- function(input, output, session) {
         n_muestra <- sample_size()$Muestra
         datos <- data45()
         
+        # Divide los datos en dos grupos: mayores e inferiores o iguales al LES
         datos_mayores <- datos[datos[[input$variable45]] > LES, ]
+        datos_menores <- datos[datos[[input$variable45]] <= LES, ]
         
-        # Si hay más datos mayores que LES que el tamaño de muestra, selecciona los más grandes
-        if (nrow(datos_mayores) > n_muestra) {
-          datos_muestra <- head(datos_mayores[order(-datos_mayores[[input$variable45]]), ], n_muestra)
-        } else {
-          n_adicional <- n_muestra - nrow(datos_mayores)
-          datos_menores <- datos[datos[[input$variable45]] <= LES, ]
-          set.seed(reactive_seed())  # Usa la semilla aleatoria generada
-          if (nrow(datos_menores) > 0 && n_adicional > 0) {
-            n_adicional <- min(n_adicional, nrow(datos_menores))  # No muestrear más de lo disponible
-            ids_adicionales <- sample(nrow(datos_menores), n_adicional, replace = FALSE)
+        # Ordena los datos mayores de forma descendente
+        datos_mayores <- datos_mayores[order(-datos_mayores[[input$variable45]]), ]
+        
+        # Inicializa la muestra con las unidades mayores al LES
+        datos_muestra <- datos_mayores
+        
+        # Calcula el número de unidades adicionales necesarias
+        n_adicional <- n_muestra - nrow(datos_mayores)
+        
+        if (n_adicional > 0 && nrow(datos_menores) > 0) {
+          # Ajusta el número de adicionales si es mayor al número de datos menores disponibles
+          n_adicional <- min(n_adicional, nrow(datos_menores))
+          
+          # Calcula las probabilidades de selección proporcional al tamaño
+          total_valor_menores <- sum(datos_menores[[input$variable45]], na.rm = TRUE)
+          if (total_valor_menores > 0) {
+            prob_seleccion <- datos_menores[[input$variable45]] / total_valor_menores
+            
+            # Establece la semilla para reproducibilidad
+            set.seed(reactive_seed())
+            
+            # Selecciona las unidades adicionales usando muestreo PPT
+            ids_adicionales <- sample(
+              x = seq_len(nrow(datos_menores)), 
+              size = n_adicional, 
+              replace = FALSE, 
+              prob = prob_seleccion
+            )
+            
+            # Añade las unidades seleccionadas a la muestra
             datos_adicionales <- datos_menores[ids_adicionales, ]
-            datos_muestra <- rbind(datos_mayores, datos_adicionales)
-          } else {
-            datos_muestra <- datos_mayores
+            datos_muestra <- rbind(datos_muestra, datos_adicionales)
           }
         }
         
         return(datos_muestra)
       })
       
-      
+      # Renderiza la tabla de la muestra seleccionada en la interfaz
       output$MuestraLES_PPT <- renderReactable({
         req(Muestra_2())
         reactable(Muestra_2())
       })
       
-      #################################
-      #    Valor de la semilla MUM    #
-      #################################
+      #####################################
+      #    Valor de la semilla LES-PPT    #
+      #####################################
       
       set.seed(Sys.time())
       
@@ -1400,7 +1419,7 @@ server <- function(input, output, session) {
         
       })
       
-      output$download4.1 <- downloadHandler(
+      output$download45.1 <- downloadHandler(
         
         
         filename = function() {
@@ -1412,7 +1431,7 @@ server <- function(input, output, session) {
         }
       )
       
-      output$download4.2 <- downloadHandler(
+      output$download45.2 <- downloadHandler(
         
         filename = function() {
           paste("MuestraLES-PPT", Sys.Date(), ".txt", sep="")
@@ -1422,7 +1441,7 @@ server <- function(input, output, session) {
         }
       )
       
-      output$download4.3 <- downloadHandler(
+      output$download45.3 <- downloadHandler(
         filename = function() {
           paste("MuestraLES-PPT", Sys.Date(), ".xlsx", sep="")
         },
@@ -1434,9 +1453,9 @@ server <- function(input, output, session) {
       
       
       
-      ###########################
-      #    Reporte del MUM      #
-      ###########################
+      ###############################
+      #    Reporte del LES PPT      #
+      ###############################
       
       generarGraficoDensidadLES_PPT <- function(datosOriginales, datosMuestra, variable) {
         p <- ggplot() +
@@ -1451,7 +1470,7 @@ server <- function(input, output, session) {
       }
       
       
-      output$downloadReport3 <- downloadHandler(
+      output$downloadReport3_LES_PPT <- downloadHandler(
         filename = function() {
           paste("Muestreo_LES_", Sys.Date(), ".docx", sep = "")
         },
