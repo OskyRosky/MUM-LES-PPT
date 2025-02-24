@@ -578,13 +578,22 @@ server <- function(input, output, session) {
     ####                                    Reporte  del MUM                                       #
     ################################################################################################
     
-    # Funcion de densidad 
-    
+    # Función para generar el gráfico de densidad
     generarGraficoDensidadMUM <- function(datosOriginales, datosMuestra, variable) {
+      # Filtrar valores NA
+      datosOriginales <- datosOriginales[!is.na(datosOriginales[[variable]]), ]
+      datosMuestra <- datosMuestra[!is.na(datosMuestra[[variable]]), ]
+      
+      # Verificar que haya al menos dos puntos en cada conjunto de datos
+      if (nrow(datosOriginales) < 2 || nrow(datosMuestra) < 2) {
+        stop("Se requieren al menos dos puntos en cada conjunto de datos para generar el gráfico de densidad.")
+      }
+      
+      # Generar el gráfico
       p <- ggplot() +
-        geom_density(data = datosOriginales, aes(x = variable), fill = "blue", alpha = 0.5) +
-        geom_density(data = datosMuestra, aes(x = variable), fill = "lightgreen", alpha = 0.5) +
-        labs(title = "Comparación entre datos Original vs Muestra",
+        geom_density(data = datosOriginales, aes(x = .data[[variable]]), fill = "blue", alpha = 0.5) +
+        geom_density(data = datosMuestra, aes(x = .data[[variable]]), fill = "lightgreen", alpha = 0.5) +
+        labs(title = "Comparación entre datos Originales vs Muestra",
              x = variable,
              y = "Densidad") +
         theme_minimal()
@@ -592,8 +601,7 @@ server <- function(input, output, session) {
       return(p)
     }
     
-    # Descarga del reporte MUM
-    
+    # Handler para la descarga del reporte MUM
     output$downloadReport2 <- downloadHandler(
       filename = function() {
         paste("Muestreo_MUM_", Sys.Date(), ".docx", sep = "")
@@ -604,9 +612,9 @@ server <- function(input, output, session) {
         # Crear un nuevo documento de Word
         doc <- read_docx()
         
-        # Añadir título principal y otros detalles como antes...
+        # Añadir título principal y detalles de los parámetros
         doc <- doc %>%
-          body_add_par("Muestreo por Unidades Monetarias", style = "heading 1") %>%
+          body_add_par("Muestreo por Unidades Monetarias (MUM)", style = "heading 1") %>%
           body_add_par("Parámetros", style = "heading 2") %>%
           body_add_par(paste("Nombre del archivo de datos:", input$file2$name), style = "Normal") %>%
           body_add_par(paste("Variable seleccionada:", input$variable2), style = "Normal") %>%
@@ -614,43 +622,48 @@ server <- function(input, output, session) {
           body_add_par(paste("Error Esperado:", input$freq2_MUM), style = "Normal") %>%
           body_add_par(paste("Nivel de confianza:", input$freq3_MUM), style = "Normal") %>%
           body_add_par(paste("Selección de la distribución:", input$distri_1), style = "Normal") %>%
-          body_add_par("Información de Muestreo", style = "heading 2")
+          body_add_par("Información de Muestreo", style = "heading 2") %>%
+          body_add_par(paste("Tamaño de Muestra:", as.character(sample_size()$Muestra)), style = "Normal") %>%
+          body_add_par(paste("Semilla para selección por MUM:", as.character(reactive_seed())), style = "Normal")
         
-        # Añadir "Tamaño de Muestra" y su valor en la misma línea
-        doc <- doc %>%
-          body_add_par(paste("Tamaño de Muestra:", as.character(sample_size()$Muestra)), style = "Normal")  %>%
-          body_add_par(paste("Semilla para selección por PPT:", as.character(reactive_seed())), style = "Normal")
-        
-        
-        
-        # Generar y guardar el gráfico de densidad como imagen temporal
-        datosOriginales <- data2()  # Asegúrate de que estos son los datos completos
-        datosMuestra <- Muestra()  # Asegúrate de que estos son los datos de la muestra
+        # Generar el gráfico de densidad
+        datosOriginales <- data2()
+        datosMuestra <- Muestra()
         variable <- input$variable2
         
-        grafico <- generarGraficoDensidadMUM(datosOriginales, datosMuestra, variable)
-        rutaImagen <- tempfile(fileext = ".png")
-        ggsave(rutaImagen, plot = grafico, width = 7, height = 5, dpi = 300)
+        # Intentar generar el gráfico de densidad
+        grafico <- tryCatch(
+          {
+            generarGraficoDensidadMUM(datosOriginales, datosMuestra, variable)
+          },
+          error = function(e) {
+            NULL
+          }
+        )
         
-        # Añadir el gráfico al documento
-        doc <- doc %>%
-          body_add_par("Gráfico comparativo entre valores originales y obtenidos por la muestra.", style = "heading 2") %>%
-          body_add_img(src = rutaImagen, width = 7, height = 5)
-        
-        
-        # Añadir la tabla
-        
-        # Añadir sección de "1.4 Muestra Seleccionada"
-        doc <- doc %>%
-          body_add_par("1.4 Muestra Seleccionada", style = "heading 2")
-        
-        # Asegúrate de que Muestra() devuelva un data frame
-        datosMuestra <- Muestra()
-        
-        # Convertir datos de la muestra en una tabla de Word
-        if (!is.null(datosMuestra)) {
+        # Añadir el gráfico al documento si se generó correctamente
+        if (!is.null(grafico)) {
+          rutaImagen <- tempfile(fileext = ".png")
+          ggsave(rutaImagen, plot = grafico, width = 7, height = 5, dpi = 300)
+          
           doc <- doc %>%
-            body_add_table(datosMuestra, style = "table_template")  # Eliminado el argumento autofit
+            body_add_par("Gráfico comparativo entre valores originales y obtenidos por la muestra.", style = "heading 2") %>%
+            body_add_img(src = rutaImagen, width = 7, height = 5)
+          
+          # Eliminar la imagen temporal
+          unlink(rutaImagen)
+        } else {
+          doc <- doc %>%
+            body_add_par("No se pudo generar el gráfico de densidad debido a datos insuficientes.", style = "Normal")
+        }
+        
+        # Añadir la tabla de la muestra seleccionada
+        doc <- doc %>%
+          body_add_par("Muestra Seleccionada", style = "heading 2")
+        
+        if (!is.null(datosMuestra) && nrow(datosMuestra) > 0) {
+          doc <- doc %>%
+            body_add_table(value = datosMuestra, style = "table_template")
         } else {
           doc <- doc %>%
             body_add_par("No hay datos de muestra disponibles.", style = "Normal")
@@ -666,8 +679,6 @@ server <- function(input, output, session) {
     
   })
   
-  
-
   
   #################################################################################
   #################################################################################
