@@ -532,6 +532,7 @@ body <- dashboardBody(
           
           fluidRow(
             box(
+              
               solidHeader = TRUE, 
               status = "primary",
               collapsible = TRUE,
@@ -753,7 +754,7 @@ body <- dashboardBody(
           
           conditionalPanel(
             condition = "(!output.hasNegatives_LES_PPT) && (input.freq2_LES_PPT < input.freq1_LES_PPT)",
-            actionButton("update_LES", "Análisis del muestreo.", class = "btn-primary")
+            actionButton("update_LES_PPT", "Análisis del muestreo.", class = "btn-primary")
           ),
           br(),
           br(),

@@ -1143,14 +1143,6 @@ server <- function(input, output, session) {
   #         Alerta para valores negativos  en MUM  #
   ##################################################
   
-  output$variable_select_LES_PPT <- renderUI({
-    if (is.null(data3())) {
-      return(NULL)
-    } else {
-      selectInput("variable45", "Elija una variable:", names(data45()))
-    }
-  })
-  
   # Initialize a reactive value for tracking negative values in the Muestreo section
   has_negatives_muestreo_LES_PPT <- reactiveVal(FALSE)
   
@@ -1199,11 +1191,25 @@ server <- function(input, output, session) {
   })
 
   
+
   #################################
   #   Condicional     #
   #################################
   
-
+  output$has_negatives_muestreo_LES_PPT <- reactive({
+    has_negatives_muestreo_LES_PPT()  # Esta es tu variable reactiva que ya tienes definida
+  })
+  shiny::outputOptions(output, "hasNegatives_LES_PPT", suspendWhenHidden = FALSE)
+  
+  observeEvent(input$update_LES_PPT, {
+    if (input$freq2_LES_PPT >= input$freq1_LES_PPT) {
+      showModal(modalDialog(
+        title = "Advertencia",
+        "No se procede con el análisis por la mala especificación de los parámetros de los errores tolerables y esperados. Especifique bien los valores. Recordar que el valor esperado siempre debe ser inferior al error tolerable.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } else {
       
       
       
@@ -1211,48 +1217,314 @@ server <- function(input, output, session) {
       #    Cálculo tamaño muestra     #
       #################################
       
-
+      # Objeto reactivo para el tamaño de muestra
+      sample_size <- reactiveVal()  # Inicializa como un valor reactivo
+      
+      observeEvent(input$update_LES_PPT, {  # Cuando 'update' se presiona, se ejecuta el código dentro de observeEvent
+        stage1 <- planning(materiality = input$freq1_LES_PPT, 
+                           expected = input$freq2_LES_PPT,
+                           likelihood = input$distri_LES_PPT, 
+                           conf.level = input$freq3_LE_PPT
+        )
+        
+        sample_size(data.frame(`Muestra` = stage1$n))  # Asigna el valor al reactivo
+      })
+      
+      # Renderizar la tabla de tamaño de muestra
+      output$SampleSize_LES_PPT <- renderReactable({
+        req(sample_size())  # Asegúrate de que el valor reactivo no sea NULL
+        reactable(sample_size())  # Renderiza el valor reactivo en una tabla
+      })
+      
       
       ######################################
       #    Selección unidades según LES    #
       ######################################
-
       
-
+      reactive_seed <- reactiveVal()  # Inicializa como un valor reactivo
+      
+      observeEvent(input$update_LES_PPT, {
+        seed_number <- sample(1:100000, 1)
+        reactive_seed(seed_number)
+        # ... [Resto del código para actualizar la muestra] ...
+      })
+      
+      
+      # Crear una tabla reactiva para mostrar la semilla
+      output$seedvalue_LES_PPT <- renderReactable({
+        req(reactive_seed())  # Asegúrate de que la semilla no sea NULL
+        reactable(data.frame(`Semilla` = reactive_seed()))  # Muestra la semilla en una tabla
+      })
+      
+      
+      # Objeto reactivo para la selección de las unidades
+      Muestra_2 <- reactive({
+        req(input$update_LES_PPT)
+        req(sample_size())
+        req(data45())
+        
+        LES <- input$LES_PPT
+        n_muestra <- sample_size()$Muestra
+        datos <- data45()
+        
+        datos_mayores <- datos[datos[[input$variable45]] > LES, ]
+        
+        # Si hay más datos mayores que LES que el tamaño de muestra, selecciona los más grandes
+        if (nrow(datos_mayores) > n_muestra) {
+          datos_muestra <- head(datos_mayores[order(-datos_mayores[[input$variable3]]), ], n_muestra)
+        } else {
+          n_adicional <- n_muestra - nrow(datos_mayores)
+          datos_menores <- datos[datos[[input$variable3]] <= LES, ]
+          set.seed(reactive_seed())  # Usa la semilla aleatoria generada
+          if (nrow(datos_menores) > 0 && n_adicional > 0) {
+            ids_adicionales <- sample(nrow(datos_menores), n_adicional, replace = FALSE)
+            datos_adicionales <- datos_menores[ids_adicionales, ]
+            datos_muestra <- rbind(datos_mayores, datos_adicionales)
+          } else {
+            datos_muestra <- datos_mayores
+          }
+        }
+        
+        return(datos_muestra)
+      })
+      
+      
+      output$MuestraLES_PPT <- renderReactable({
+        req(Muestra_2())
+        reactable(Muestra_2())
+      })
+      
       #################################
       #    Valor de la semilla MUM    #
       #################################
       
-
+      set.seed(Sys.time())
+      
+      # Función reactiva para generar y almacenar la semilla
+      reactive_seed <- reactiveVal()  # Inicializa como un valor reactivo
+      
+      observeEvent(input$update_LES_PPT, {  # Actualiza la semilla cuando se presiona 'update'
+        seed_number <- sample(1:100000, 1)  # Genera un número aleatorio entre 1 y 100000
+        reactive_seed(seed_number)  # Asigna el número a reactive_seed
+      })
+      
+      
+      # Crear una tabla reactiva para mostrar la semilla
+      output$seedvalue_LES_PPT <- renderReactable({
+        req(reactive_seed())  # Asegúrate de que la semilla no sea NULL
+        reactable(data.frame(`Semilla` = reactive_seed()))  # Muestra la semilla en una tabla
+      })
       
       #################################
       #    Conteo de los valores LES  #
       #################################
       
-
+      conteoLES <- reactive({
+        req(input$update_LES_PPT)
+        req(Muestra_2())
+        
+        LES <- input$LES
+        muestra <- Muestra_2()
+        
+        conteo_mayores <- sum(muestra[[input$variable3]] > LES, na.rm = TRUE)
+        conteo_menores <- sum(muestra[[input$variable3]] <= LES, na.rm = TRUE)
+        
+        data.frame(
+          `Categoría` = c("Mayores que LES", "Menores o iguales a LES"),
+          `Conteo` = c(conteo_mayores, conteo_menores)
+        )
+      })
+      
+      # Renderizar la tabla de conteo LES para la muestra seleccionada
+      output$ConteoLes <- renderReactable({
+        req(conteoLES())  # Asegúrate de que el objeto reactivo no sea NULL
+        reactable(conteoLES())  # Renderiza el objeto reactivo en una tabla
+      })
+      
       
       #################################################
       #    Comparación de datos originales y muestra  #
       #################################################
       
+      output$comp_dist_LES_PPT <- renderHighchart({
+        # Asegúrate de que tanto los datos originales como la muestra estén disponibles
+        req(data45(), Muestra_2(), input$variable45)
+        
+        # Calcular la densidad para los datos originales
+        dens_orig <- density(data45()[[input$variable3]], na.rm = TRUE)
+        dens_orig_df <- data.frame(x = dens_orig$x, y = dens_orig$y)
+        
+        # Calcular la densidad para la muestra
+        dens_muestra <- density(Muestra_2()[[input$variable45]], na.rm = TRUE)
+        dens_muestra_df <- data.frame(x = dens_muestra$x, y = dens_muestra$y)
+        
+        # Crear el gráfico de densidad comparativa
+        highchart() %>%
+          hc_add_series(name = "Datos Originales", data = list_parse(dens_orig_df), type = "area", color = "skyblue") %>%
+          hc_add_series(name = "Muestra LES", data = list_parse(dens_muestra_df), type = "area", color = "green") %>%
+          hc_tooltip(crosshairs = TRUE, valueDecimals = 1, shared = TRUE, borderWidth = 5) %>%
+          hc_chart(zoomType = "xy") %>%
+          hc_title(text = "Comparación de Densidades")  %>%
+          hc_exporting(enabled = TRUE)
+      })
       
-      #################################################
-      #     Descargar datos del muestreo por LES      #
-      #################################################
+      
+      
+      #######################################################
+      #     Descargar datos del muestreo por LES  - PPT     #
+      #######################################################
+      
+      observeEvent(input$show1_LES_PPT, {
+        
+        showModal(modalDialog(
+          title = "Descargar los datos ", br(),
+          br(),
+          downloadButton("download45.1",".csv file"),
+          br(),
+          br(),
+          downloadButton("download45.2",".txt file"),
+          br(),
+          br(),
+          downloadButton("download45.3",".xlsx file"),
+          
+          footer = modalButton("Close"),
+          easyClose = TRUE)
+        )
+        
+      })
+      
+      output$download4.1 <- downloadHandler(
+        
+        
+        filename = function() {
+          paste("MuestraLES-PPT", Sys.Date(), ".csv", sep="")
+        },
+        
+        content = function(file) {
+          write.csv(Muestra_2(), file)
+        }
+      )
+      
+      output$download4.2 <- downloadHandler(
+        
+        filename = function() {
+          paste("MuestraLES-PPT", Sys.Date(), ".txt", sep="")
+        },
+        content = function(file) {
+          write.table(Muestra_2(), file)
+        }
+      )
+      
+      output$download4.3 <- downloadHandler(
+        filename = function() {
+          paste("MuestraLES-PPT", Sys.Date(), ".xlsx", sep="")
+        },
+        content = function(file) {
+          # Suponiendo que Muestra() es una función que retorna el dataframe que quieres descargar
+          write.xlsx(Muestra_2(), file)
+        }
+      )
+      
       
       
       ###########################
       #    Reporte del MUM      #
       ###########################
       
-     
+      generarGraficoDensidadLES_PPT <- function(datosOriginales, datosMuestra, variable) {
+        p <- ggplot() +
+          geom_density(data = datosOriginales, aes(x = .data[[variable]]), fill = "blue", alpha = 0.5) +
+          geom_density(data = datosMuestra, aes(x = .data[[variable]]), fill = "lightgreen", alpha = 0.5) +
+          labs(title = "Comparación entre datos Original vs Muestra LES",
+               x = variable,
+               y = "Densidad") +
+          theme_minimal()
+        
+        return(p)
+      }
+      
+      
+      output$downloadReport3 <- downloadHandler(
+        filename = function() {
+          paste("Muestreo_LES_", Sys.Date(), ".docx", sep = "")
+        },
+        content = function(file) {
+          req(data3(), input$variable3, sample_size(), reactive_seed())
           
-      ###############################
-      #      Gráfico comparativo    #
-      ###############################
+          # Iniciar un nuevo documento de Word
+          doc <- read_docx()
           
+          # Añadir título general y subtítulo con los parámetros
+          doc <- doc %>%
+            body_add_par("Muestreo LES", style = "heading 1") %>%
+            body_add_par("Parámetros", style = "heading 2") %>%
+            body_add_par(paste("Nombre del archivo de datos:", input$file3$name), style = "Normal") %>%
+            body_add_par(paste("Variable seleccionada:", input$variable3), style = "Normal") %>%
+            body_add_par(paste("Error Tolerable:", input$freq1_LES), style = "Normal") %>%
+            body_add_par(paste("Error Esperado:", input$freq2_LES), style = "Normal") %>%
+            body_add_par(paste("Nivel de confianza:", input$freq3_LES), style = "Normal") %>%
+            body_add_par(paste("Selección de la distribución:", input$distri_2), style = "Normal")
+          
+          # Continuar añadiendo contenido al documento según sea necesario
+          
+          doc <- doc %>%
+            body_add_par("Información de Muestreo", style = "heading 2") %>%
+            body_add_par(paste("Tamaño de Muestra:", as.character(sample_size()$Muestra)), style = "Normal")  %>%
+            body_add_par(paste("Semilla para selección aleatoria inferior al LES:", as.character(reactive_seed())), style = "Normal")
+          
+          ###############################
+          #      Gráfico comparativo    #
+          ###############################
+          
+          # Generar y guardar el gráfico de densidad como imagen temporal
+          datosOriginales <- data45()  # Asegúrate de que estos son los datos completos
+          datosMuestra <- Muestra_2()  # Asegúrate de que estos son los datos de la muestra
+          variable <- input$variable45
+          
+          grafico <- generarGraficoDensidadLES(datosOriginales, datosMuestra, variable)
+          rutaImagen <- tempfile(fileext = ".png")
+          ggsave(rutaImagen, plot = grafico, width = 7, height = 5, dpi = 300)
+          
+          
+          doc <- doc %>%
+            body_add_par("Gráfico comparativo entre valores originales y obtenidos por la muestra.", style = "heading 2") %>%
+            body_add_img(src = rutaImagen, width = 7, height = 5)
+          
+          ######################################################
+          #    Generar la tabla con los datos de la muestre    #
+          ######################################################
+          
+          doc <- doc %>%
+            body_add_par("1.4 Muestra Seleccionada", style = "heading 2")
+          
+          # Asegúrate de que Muestra() devuelva un data frame
+          datosMuestra2 <- Muestra_2()
+          
+          # Convertir datos de la muestra en una tabla de Word
+          if (!is.null(datosMuestra2)) {
+            doc <- doc %>%
+              body_add_table(datosMuestra2, style = "table_template")  # Eliminado el argumento autofit
+          } else {
+            doc <- doc %>%
+              body_add_par("No hay datos de muestra disponibles.", style = "Normal")
+          }
+          
+          # Guardar el documento
+          print(doc, target = file)
+          
+          # Limpiar eliminando la imagen temporal
+          unlink(rutaImagen)
+        }
+      )
+      
+      
+      
+    }
+    
+    
+    
+  })
 
-  
   
   ###########################################################################################################
   ###########################################################################################################
