@@ -1199,7 +1199,8 @@ server <- function(input, output, session) {
   output$has_negatives_muestreo_LES_PPT <- reactive({
     has_negatives_muestreo_LES_PPT()  # Esta es tu variable reactiva que ya tienes definida
   })
-  shiny::outputOptions(output, "hasNegatives_LES_PPT", suspendWhenHidden = FALSE)
+  outputOptions(output, 'negativesAlertMuestreoLES_PPT', suspendWhenHidden = FALSE)
+
   
   observeEvent(input$update_LES_PPT, {
     if (input$freq2_LES_PPT >= input$freq1_LES_PPT) {
@@ -1224,7 +1225,7 @@ server <- function(input, output, session) {
         stage1 <- planning(materiality = input$freq1_LES_PPT, 
                            expected = input$freq2_LES_PPT,
                            likelihood = input$distri_LES_PPT, 
-                           conf.level = input$freq3_LE_PPT
+                           conf.level = input$freq3_LES_PPT
         )
         
         sample_size(data.frame(`Muestra` = stage1$n))  # Asigna el valor al reactivo
@@ -1271,7 +1272,7 @@ server <- function(input, output, session) {
         
         # Si hay más datos mayores que LES que el tamaño de muestra, selecciona los más grandes
         if (nrow(datos_mayores) > n_muestra) {
-          datos_muestra <- head(datos_mayores[order(-datos_mayores[[input$variable3]]), ], n_muestra)
+          datos_muestra <- head(datos_mayores[order(-datos_mayores[[input$variable45]]), ], n_muestra)
         } else {
           n_adicional <- n_muestra - nrow(datos_mayores)
           datos_menores <- datos[datos[[input$variable3]] <= LES, ]
@@ -1322,12 +1323,16 @@ server <- function(input, output, session) {
       conteoLES <- reactive({
         req(input$update_LES_PPT)
         req(Muestra_2())
+        req(input$variable45)  # Asegúrate de que input$variable45 no sea NULL
         
-        LES <- input$LES
+        LES <- input$LES_PPT  # Asegúrate de que este es el ID correcto para el input LES
         muestra <- Muestra_2()
         
-        conteo_mayores <- sum(muestra[[input$variable3]] > LES, na.rm = TRUE)
-        conteo_menores <- sum(muestra[[input$variable3]] <= LES, na.rm = TRUE)
+        # Verifica que la variable seleccionada exista en el data frame
+        req(input$variable45 %in% names(muestra))
+        
+        conteo_mayores <- sum(muestra[[input$variable45]] > LES, na.rm = TRUE)
+        conteo_menores <- sum(muestra[[input$variable45]] <= LES, na.rm = TRUE)
         
         data.frame(
           `Categoría` = c("Mayores que LES", "Menores o iguales a LES"),
@@ -1351,7 +1356,7 @@ server <- function(input, output, session) {
         req(data45(), Muestra_2(), input$variable45)
         
         # Calcular la densidad para los datos originales
-        dens_orig <- density(data45()[[input$variable3]], na.rm = TRUE)
+        dens_orig <- density(data45()[[input$variable45]], na.rm = TRUE)
         dens_orig_df <- data.frame(x = dens_orig$x, y = dens_orig$y)
         
         # Calcular la densidad para la muestra

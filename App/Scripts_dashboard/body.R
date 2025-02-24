@@ -737,7 +737,7 @@ body <- dashboardBody(
           sliderInput("freq2_LES_PPT",
                       "Esperado:",
                       min = 0.01,  max = 0.99, value = 0.01), 
-          selectInput("distri_2", "Seleccione el nivel:",  
+          selectInput("distri_LES_PPT", "Seleccione el nivel:",  
                       list(`Tipo` = list("poisson",
                                          "binomial"
                                          
@@ -750,7 +750,7 @@ body <- dashboardBody(
                       min = 0.01,  max = 0.99, value = 0.95),
           br(),
           h4("Valor LES.",align = "left"),
-          numericInput("LES", "Valor del LES:", min = 0, value = 100000),
+          numericInput("LES_PPT", "Valor del LES:", min = 0, value = 100000),
           
           conditionalPanel(
             condition = "(!output.hasNegatives_LES_PPT) && (input.freq2_LES_PPT < input.freq1_LES_PPT)",
