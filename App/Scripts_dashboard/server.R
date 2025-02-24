@@ -1481,7 +1481,7 @@ server <- function(input, output, session) {
           
           # Añadir título general y subtítulo con los parámetros
           doc <- doc %>%
-            body_add_par("Muestreo LES", style = "heading 1") %>%
+            body_add_par("Muestreo LES con selección por PPT.", style = "heading 1") %>%
             body_add_par("Parámetros", style = "heading 2") %>%
             body_add_par(paste("Nombre del archivo de datos:", input$file3$name), style = "Normal") %>%
             body_add_par(paste("Variable seleccionada:", input$variable3), style = "Normal") %>%
