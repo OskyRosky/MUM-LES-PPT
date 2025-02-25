@@ -1830,22 +1830,35 @@ server <- function(input, output, session) {
     #################################################
     #     Reporte del Muestreo por Atributos       #
     #################################################
-
+    
+    # Generar gráfico de comparación de porcentajes
     generarGraficoPorcentajesAtri <- function(datosOriginales, datosMuestra) {
-      ggplot() +
-        geom_bar(data = datosOriginales, aes(x = Categoria, y = Porcentaje, fill = "Original"), 
-                 stat = "identity", position = position_dodge(width = 0.8), width = 0.35) +
-        geom_bar(data = datosMuestra, aes(x = Categoria, y = Porcentaje, fill = "Muestra"), 
-                 stat = "identity", position = position_dodge(width = 0.8), width = 0.35) +
-        scale_fill_manual(values = c("Original" = "lightblue", "Muestra" = "lightgreen")) +
-        labs(title = "Comparación de Porcentajes por Categoría", x = "Categoría", y = "Porcentaje") +
+      # Combinar datos en un solo dataframe para facilitar la comparación
+      datosOriginales$Tipo <- "Original"
+      datosMuestra$Tipo <- "Muestra"
+      datosCombinados <- rbind(datosOriginales, datosMuestra)
+      
+      ggplot(datosCombinados, aes(x = Categoria, y = Porcentaje, fill = Tipo)) +
+        geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.6) +
+        scale_fill_manual(values = c("Original" = "lightblue", "Muestra" = "gray30")) +
+        labs(
+          title = "Comparación de Porcentajes por Categoría",
+          x = "Categoría",
+          y = "Porcentaje"
+        ) +
         theme_minimal() +
-        coord_flip() + # Para hacer las barras horizontales
-        theme(legend.position = "bottom") # Para mover la leyenda al fondo
+        coord_flip() +  # Barras horizontales
+        geom_text(
+          aes(label = paste0(round(Porcentaje, 1), "%")),
+          position = position_dodge(0.8),
+          vjust = 0.5,
+          color = "white",
+          size = 3
+        ) +
+        theme(legend.position = "bottom")  # Leyenda en la parte inferior
     }
     
-    
-    
+    # Descarga del reporte de muestreo por atributos
     output$downloadReport4 <- downloadHandler(
       filename = function() {
         paste("Muestreo_Atributos_", Sys.Date(), ".docx", sep = "")
@@ -1867,13 +1880,10 @@ server <- function(input, output, session) {
           body_add_par(paste("Nivel de confianza:", input$freq3_Atri), style = "Normal") %>%
           body_add_par(paste("Selección de la distribución:", input$distri_3), style = "Normal")
         
-        # Continuar añadiendo contenido al documento según sea necesario
-        
-        
-        
+        # Información de muestreo
         doc <- doc %>%
           body_add_par("Información de Muestreo", style = "heading 2") %>%
-          body_add_par(paste("Tamaño de Muestra:", as.character(sample_size()$Muestra)), style = "Normal")  %>%
+          body_add_par(paste("Tamaño de Muestra:", as.character(sample_size()$Muestra)), style = "Normal") %>%
           body_add_par(paste("Semilla para selección aleatoria:", as.character(reactive_seed())), style = "Normal")
         
         ###############################
@@ -1886,14 +1896,13 @@ server <- function(input, output, session) {
         grafico <- generarGraficoPorcentajesAtri(datosOrigen, datosMuestra)
         rutaImagen <- tempfile(fileext = ".png")
         ggsave(rutaImagen, plot = grafico, width = 8, height = 6, dpi = 300)
-
         
         doc <- doc %>%
           body_add_par("Gráfico comparativo entre valores originales y obtenidos por la muestra.", style = "heading 2") %>%
           body_add_img(src = rutaImagen, width = 8, height = 6)
         
         ######################################################
-        #    Generar la tabla con los datos de la muestre    #
+        #    Generar la tabla con los datos de la muestra    #
         ######################################################
         
         doc <- doc %>%
@@ -1901,8 +1910,6 @@ server <- function(input, output, session) {
         
         datosMuestra <- MuestraAtri()  # Asegúrate de que estos son los datos de la muestra
         
-        
-        # Convertir los datos de la muestra en una tabla de Word
         if (!is.null(datosMuestra) && nrow(datosMuestra) > 0) {
           doc <- doc %>%
             body_add_table(value = datosMuestra, style = "table_template")
@@ -1911,14 +1918,11 @@ server <- function(input, output, session) {
             body_add_par("No hay datos de muestra disponibles.", style = "Normal")
         }
         
-        
         # Guardar el documento
         print(doc, target = file)
         
         # Limpiar eliminando la imagen temporal
         unlink(rutaImagen)
-        
-
       }
     )
     
